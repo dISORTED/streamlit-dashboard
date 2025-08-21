@@ -22,7 +22,7 @@ with st.sidebar:
 if modo == "Base de datos":
     st.info("🔌 Conectando a la base de datos…")
     engine = create_engine(st.secrets["DB_URL"])
-    df = pd.read_sql_table("sample", con=engine)
+    df = pd.read_sql_query("SELECT * FROM sample", con=engine)
     st.success(f"✅ Cargadas {len(df)} filas desde la tabla `sample`")
 elif uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
