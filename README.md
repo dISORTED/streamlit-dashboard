@@ -1,6 +1,6 @@
 # Streamlit Data Dashboard
 
-**Repository:** [https://github.com/](https:/dISORTED/github.com/)<usuario>/streamlit-dashboard
+**Repository:** [https://github.com/](https:/dISORTED/github.com/)dISORTED/streamlit-dashboard
 
 ## Description
 
