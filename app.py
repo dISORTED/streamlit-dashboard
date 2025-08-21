@@ -7,24 +7,25 @@ st.set_page_config(page_title="Dashboard de Datos", layout="wide")
 st.title("📊 Mi Dashboard de Datos")
 st.write("Carga un archivo CSV y explora tus datos de forma interactiva.")
 
-# Carga de CSV
-uploaded_file = st.file_uploader("➤ Sube un archivo CSV", type="csv")
+# Carga de datos: subido o de ejemplo
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    st.subheader("Vista de los datos")
-    st.dataframe(df)
+    st.success("✅ Datos cargados desde tu archivo")
+else:
+    st.info("ℹ️ Cargando datos de ejemplo")
+    df = pd.read_csv("data/sample.csv")
 
-    # Selección de columnas para gráfico
-    cols = st.multiselect(
-        "Selecciona dos columnas para graficar",
-        options=df.columns.tolist(),
-        default=df.columns.tolist()[:2]
-    )
+# Vista de datos y estadísticas
+st.subheader("🔍 Vista de datos")
+st.dataframe(df)
 
-    if len(cols) == 2:
-        x_col, y_col = cols
-        st.subheader(f"Gráfico de dispersión: **{x_col}** vs **{y_col}**")
-        fig = px.scatter(df, x=x_col, y=y_col, title=f"{y_col} vs {x_col}")
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("🔢 Selecciona **exactamente** dos columnas para generar el gráfico.")
+st.subheader("📊 Estadísticas descriptivas")
+stats = df.select_dtypes("number").describe().T
+st.table(stats)
+
+# Gráfico de medias por columna numérica
+means = df.select_dtypes("number").mean().reset_index()
+means.columns = ["columna", "media"]
+st.subheader("📈 Media por columna numérica")
+fig_bar = px.bar(means, x="columna", y="media", title="Media de cada columna")
+st.plotly_chart(fig_bar, use_container_width=True)
