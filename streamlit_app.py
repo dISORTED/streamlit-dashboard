@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -20,10 +21,22 @@ with st.sidebar:
 
 # --- Carga de datos según la opción ---
 if modo == "Base de datos":
+    # Asegurarse de que exista la carpeta 'data'
+    os.makedirs("data", exist_ok=True)
+    db_path = "data/sample.db"
+
+    # Si la DB no existe, crearla a partir del CSV de ejemplo
+    if not os.path.exists(db_path):
+        df_csv = pd.read_csv("data/sample.csv")
+        eng_init = create_engine(f"sqlite:///{db_path}")
+        df_csv.to_sql("sample", eng_init, index=False, if_exists="replace")
+
+    # Conectar y leer la tabla 'sample'
     st.info("🔌 Conectando a la base de datos…")
     engine = create_engine(st.secrets["DB_URL"])
     df = pd.read_sql_query("SELECT * FROM sample", con=engine)
     st.success(f"✅ Cargadas {len(df)} filas desde la tabla `sample`")
+
 elif uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.success("✅ Datos cargados desde tu archivo")
@@ -65,12 +78,12 @@ st.markdown("---")
 
 # --- Scatter plot opcional ---
 cols = st.multiselect(
-    "🔢 (Opcional) Scatter: selecciona dos columnas",
+    "🔢 Scatter opcional: selecciona dos columnas numéricas",
     options=df.select_dtypes("number").columns.tolist(),
     default=df.select_dtypes("number").columns.tolist()[:2]
 )
 if len(cols) == 2:
     x_col, y_col = cols
-    st.subheader(f"Scatter: {y_col} vs {x_col}")
+    st.subheader(f"🔎 Scatter: {y_col} vs {x_col}")
     fig = px.scatter(df, x=x_col, y=y_col, title=f"{y_col} vs {x_col}")
     st.plotly_chart(fig, use_container_width=True)
