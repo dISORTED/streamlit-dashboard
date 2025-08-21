@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 
 # --- Configuración de la página ---
 st.set_page_config(page_title="Dashboard de Datos", layout="wide")
@@ -13,35 +13,53 @@ with st.sidebar:
     st.header("⚙️ Configuración")
     modo = st.selectbox("Fuente de datos", ["Ejemplo (CSV)", "Base de datos"])
     if modo == "Ejemplo (CSV)":
-        uploaded_file = st.file_uploader("Sube un CSV", type="csv")
+        uploaded_csv = st.file_uploader("Sube un CSV", type="csv")
+        uploaded_db = None
     else:
-        uploaded_file = None
+        uploaded_db = st.file_uploader("Sube un archivo .db", type="db")
+        uploaded_csv = None
     st.write("---")
-    st.markdown("ℹ️ Si eliges **Base de datos**, se usará el SQLite en `data/sample.db`.")
+    st.markdown(
+        "ℹ️ En **Base de datos**, si no subes `.db`, se usará `data/sample.db`. "
+        "Si subes tu `.db`, se leerá esa tabla `sample`."
+    )
 
 # --- Carga de datos según la opción ---
 if modo == "Base de datos":
-    # Asegurarse de que exista la carpeta 'data'
+    # 1) Preparar carpeta 'data'
     os.makedirs("data", exist_ok=True)
-    db_path = "data/sample.db"
 
-    # Si la DB no existe, crearla a partir del CSV de ejemplo
+    # 2) Guardar .db subido (si lo hay)
+    if uploaded_db is not None:
+        with open("data/uploaded.db", "wb") as f:
+            f.write(uploaded_db.read())
+        db_path = "data/uploaded.db"
+    else:
+        db_path = "data/sample.db"
+
+    # 3) Crear base y tabla si no existen
     if not os.path.exists(db_path):
         df_csv = pd.read_csv("data/sample.csv")
         eng_init = create_engine(f"sqlite:///{db_path}")
         df_csv.to_sql("sample", eng_init, index=False, if_exists="replace")
 
-    # Conectar y leer la tabla 'sample'
-    st.info("🔌 Conectando a la base de datos…")
-    engine = create_engine(st.secrets["DB_URL"])
+    # 4) Conectar y chequear tabla
+    engine = create_engine(f"sqlite:///{db_path}")
+    inspector = inspect(engine)
+    if "sample" not in inspector.get_table_names():
+        df_csv = pd.read_csv("data/sample.csv")
+        df_csv.to_sql("sample", engine, index=False, if_exists="replace")
+
+    # 5) Leer datos garantizados
+    st.info(f"🔌 Conectando a la base de datos: `{db_path}`")
     df = pd.read_sql_query("SELECT * FROM sample", con=engine)
     st.success(f"✅ Cargadas {len(df)} filas desde la tabla `sample`")
 
-elif uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.success("✅ Datos cargados desde tu archivo")
+elif modo == "Ejemplo (CSV)" and uploaded_csv is not None:
+    df = pd.read_csv(uploaded_csv)
+    st.success("✅ Datos cargados desde tu archivo CSV")
 else:
-    st.info("ℹ️ Cargando datos de ejemplo")
+    st.info("ℹ️ Cargando datos de ejemplo (CSV)")
     df = pd.read_csv("data/sample.csv")
 
 # --- Métricas clave ---
@@ -77,10 +95,11 @@ st.plotly_chart(fig_bar, use_container_width=True)
 st.markdown("---")
 
 # --- Scatter plot opcional ---
+numeric_cols = df.select_dtypes("number").columns.tolist()
 cols = st.multiselect(
     "🔢 Scatter opcional: selecciona dos columnas numéricas",
-    options=df.select_dtypes("number").columns.tolist(),
-    default=df.select_dtypes("number").columns.tolist()[:2]
+    options=numeric_cols,
+    default=numeric_cols[:2] if len(numeric_cols) >= 2 else numeric_cols
 )
 if len(cols) == 2:
     x_col, y_col = cols
