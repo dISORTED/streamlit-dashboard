@@ -1,6 +1,11 @@
 [theme]
-primaryColor = "#4B8BBE"                # Azul Python
-backgroundColor = "#F5F5F5"             # Gris muy claro
-secondaryBackgroundColor = "#FFFFFF"    # Blanco
-textColor = "#333333"                   # Gris oscuro
+# Fondo general oscuro
+backgroundColor = "#0E1117"
+# Fondo de cabeceras/controles
+secondaryBackgroundColor = "#1A1A2E"
+# Color principal de botones y resaltados
+primaryColor = "#1E90FF"
+# Color de texto claro para contraste
+textColor = "#FFFFFF"
+# Fuente neutra
 font = "sans serif"
